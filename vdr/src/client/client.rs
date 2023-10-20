@@ -134,10 +134,8 @@ pub mod test {
         "0x0000000000000000000000000000000000004444";
     pub const CRED_DEF_REGISTRY_SPEC_PATH: &'static str =
         "cl/CredentialDefinitionRegistry.sol/CredentialDefinitionRegistry.json";
-    pub const VALIDATOR_CONTROL_ADDRESS: &'static str =
-        "0x0000000000000000000000000000000000007777";
-    pub const VALIDATOR_CONTROL_PATH: &'static str =
-        "network/ValidatorControl.sol/ValidatorControl.json";
+    pub const ROLE_CONTROL_ADDRESS: &'static str = "0x0000000000000000000000000000000000006666";
+    pub const ROLE_CONTROL_PATH: &'static str = "auth/RoleControl.sol/RoleControl.json";
 
     fn build_contract_path(contract_path: &str) -> String {
         let mut cur_dir = env::current_dir().unwrap();
@@ -165,8 +163,8 @@ pub mod test {
                 spec_path: build_contract_path(CRED_DEF_REGISTRY_SPEC_PATH),
             },
             ContractConfig {
-                address: VALIDATOR_CONTROL_ADDRESS.to_string(),
-                spec_path: build_contract_path(VALIDATOR_CONTROL_PATH),
+                address: ROLE_CONTROL_ADDRESS.to_string(),
+                spec_path: build_contract_path(ROLE_CONTROL_PATH),
             },
         ]
     }
