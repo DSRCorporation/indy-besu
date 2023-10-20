@@ -108,9 +108,7 @@ impl TransactionParser {
         let contract = client.contract(&self.contract)?;
         let output = contract.decode_output(&self.method, bytes)?;
         if output.is_empty() {
-            return Err(VdrError::Common(
-                "Unable to parse object: Empty data".to_string(),
-            ));
+            return Err(VdrError::ContractInvalidResponseData);
         }
 
         T::try_from(output)
