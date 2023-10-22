@@ -9,21 +9,8 @@ pub mod migration;
 
 pub use client::{Client, ContractConfig, LedgerClient, PingStatus, Status};
 pub use contracts::{
-    cl::{
-        credential_definition_registry::CredentialDefinitionRegistry,
-        schema_registry::SchemaRegistry,
-        types::{
-            credential_definition::CredentialDefinition,
-            credential_definition_id::CredentialDefinitionId, schema::Schema, schema_id::SchemaId,
-        },
-    },
-    did::{
-        did_registry::DidRegistry,
-        types::{
-            did_doc::{DidDocument, VerificationKey, VerificationKeyType, DID},
-            did_doc_builder::DidDocumentBuilder,
-        },
-    },
+    CredentialDefinition, CredentialDefinitionRegistry, DidDocument, DidRegistry, Role,
+    RoleControl, Schema, SchemaRegistry,
 };
 pub use signer::{BasicSigner, Signer};
 
