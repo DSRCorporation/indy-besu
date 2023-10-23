@@ -42,6 +42,7 @@ export const config: Config = {
     description: 'Account permissioning smart contract',
     data: {
       roleControlContractAddress: contractsAddresses.roles,
+      upgradeControlAddress: contractsAddresses.upgradeControl,
     },
   },
   credentialDefinitionRegistry: {
@@ -52,6 +53,7 @@ export const config: Config = {
       credentialDefinitions: [],
       didRegistryAddress: contractsAddresses.didRegistry,
       schemaRegistryAddress: contractsAddresses.schemas,
+      upgradeControlAddress: contractsAddresses.upgradeControl,
     },
   },
   didRegex: {
@@ -71,6 +73,7 @@ export const config: Config = {
     libraries: { 'contracts/did/DidValidator.sol:DidValidator': contractsAddresses.didValidator },
     data: {
       dids: [],
+      upgradeControlAddress: contractsAddresses.upgradeControl,
     },
   },
   roleControl: {
@@ -109,6 +112,7 @@ export const config: Config = {
         '2': '1',
         '3': '1',
       },
+      upgradeControlAddress: contractsAddresses.upgradeControl,
     },
   },
   schemaRegistry: {
@@ -118,6 +122,7 @@ export const config: Config = {
     data: {
       schemas: [],
       didRegistryAddress: contractsAddresses.didRegistry,
+      upgradeControlAddress: contractsAddresses.upgradeControl,
     },
   },
   upgradeControl: {
@@ -152,6 +157,7 @@ export const config: Config = {
         },
       ],
       roleControlContractAddress: contractsAddresses.roles,
+      upgradeControlAddress: contractsAddresses.upgradeControl,
     },
   },
 }

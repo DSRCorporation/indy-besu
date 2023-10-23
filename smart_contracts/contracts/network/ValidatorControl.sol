@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import { Unauthorized} from "../auth/AuthErrors.sol";
-import { RoleControlInterface } from "../auth/RoleControlInterface.sol";
-import { ValidatorSmartContractInterface } from "./ValidatorSmartContractInterface.sol";
+import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-contract ValidatorControl is ValidatorSmartContractInterface {
+import { RoleControlInterface } from "../auth/RoleControl.sol";
+import { UpgradeControlInterface } from "../upgrade/UpgradeControlInterface.sol";
+
+import "./ValidatorSmartContractInterface.sol";
+
+contract ValidatorControl is ValidatorSmartContractInterface, UUPSUpgradeable, Initializable {
+    
     /**
      * @dev Type describing initial validator details
      */
@@ -28,6 +33,16 @@ contract ValidatorControl is ValidatorSmartContractInterface {
     uint constant MAX_VALIDATORS = 256;
 
     /**
+     * @dev Reference to the contract managing auth permissions
+     */
+    RoleControlInterface private _roleControl;
+
+    /**
+     * @dev Reference to the contract that manages contract upgrades
+     */
+    UpgradeControlInterface private _upgradeControl;
+
+    /**
      * @dev List of active validators
      */
     address[] private validators;
@@ -38,26 +53,23 @@ contract ValidatorControl is ValidatorSmartContractInterface {
     mapping(address validatorAddress => ValidatorInfo validatorInfo) private validatorInfos;
 
     /**
-     * @dev Reference to the contract managing auth permissions
-         */
-    RoleControlInterface private roleControl;
-
-    /**
      * @dev Modifier that checks that an the sender account has Steward role assigned.
      */
-    modifier senderIsSteward() {
-        if (!roleControl.hasRole(RoleControlInterface.ROLES.STEWARD, msg.sender)) revert Unauthorized(msg.sender);
+    modifier _senderIsSteward() {
+        require(
+            _roleControl.hasRole(RoleControlInterface.ROLES.STEWARD, msg.sender),
+            "Sender does not have STEWARD role assigned"
+        );
         _;
     }
 
-    modifier nonZeroValidatorAddress(address validator) {
-        if (validator == address(0)) revert InvalidValidatorAddress();
-         _;
-    }
-
-    constructor(address roleControlContractAddress, InitialValidatorInfo[] memory initialValidators) {
-        if (initialValidators.length == 0) revert InitialValidatorsRequired();
-        if (initialValidators.length >= MAX_VALIDATORS) revert ExceedsValidatorLimit(MAX_VALIDATORS);
+    function initialize(
+        address roleControlContractAddress, 
+        InitialValidatorInfo[] memory initialValidators, 
+        address upgradeControlAddress
+    ) public initializer {
+        require(initialValidators.length > 0, "List of initial validators cannot be empty");
+        require(initialValidators.length < MAX_VALIDATORS, "Number of validators cannot be larger than 256");
 
         for (uint i = 0; i < initialValidators.length; i++) {
             if (initialValidators[i].account == address(0)) revert InvalidValidatorAccountAddress();
@@ -69,7 +81,13 @@ contract ValidatorControl is ValidatorSmartContractInterface {
             validatorInfos[validator.validator] = ValidatorInfo(validator.account, uint8(i));
         }
 
-        roleControl = RoleControlInterface(roleControlContractAddress);
+        _roleControl = RoleControlInterface(roleControlContractAddress);
+        _upgradeControl = UpgradeControlInterface(upgradeControlAddress);
+    }
+
+     /// @inheritdoc UUPSUpgradeable
+    function _authorizeUpgrade(address newImplementation) internal view override {
+        _upgradeControl.ensureSufficientApprovals(address(this), newImplementation);
     }
 
     /**
@@ -82,8 +100,9 @@ contract ValidatorControl is ValidatorSmartContractInterface {
     /**
      * @dev Add a new validator to the list
      */
-    function addValidator(address newValidator) external senderIsSteward nonZeroValidatorAddress(newValidator) {
-        if (validators.length >= MAX_VALIDATORS) revert ExceedsValidatorLimit(MAX_VALIDATORS);
+    function addValidator(address newValidator) external _senderIsSteward {
+        require(newValidator != address(0), "Cannot add validator with address 0");
+        require(validators.length < MAX_VALIDATORS, "Number of validators cannot be larger than 256");
 
         uint256 validatorsCount = validators.length;
         for (uint i=0; i < validatorsCount; i++) {
@@ -102,8 +121,8 @@ contract ValidatorControl is ValidatorSmartContractInterface {
     /**
      * @dev Remove an existing validator from the list
      */
-    function removeValidator(address validator) external senderIsSteward nonZeroValidatorAddress(validator) {
-        if (validators.length == 1) revert CannotDeactivateLastValidator();
+    function removeValidator(address validator) external _senderIsSteward {
+        require(validators.length > 1, "Cannot deactivate last validator");
 
         ValidatorInfo memory removedValidatorInfo = validatorInfos[validator];
         if (removedValidatorInfo.account == address(0)) revert ValidatorNotFound(validator);
