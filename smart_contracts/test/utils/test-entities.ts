@@ -25,6 +25,71 @@ export interface TestAccounts {
   noRole3: TestAccountDetails
 }
 
+export class TestableDidRegistry extends DidRegistry {
+  public get baseInstance() {
+    return this.instance
+  }
+}
+
+export class TestableSchemaRegistry extends SchemaRegistry {
+  public get baseInstance() {
+    return this.instance
+  }
+}
+
+export class TestableCredentialDefinitionRegistry extends CredentialDefinitionRegistry {
+  public get baseInstance() {
+    return this.instance
+  }
+}
+
+export class TestableUpgradeControl extends UpgradeControl {
+  public get baseInstance() {
+    return this.instance
+  }
+}
+
+export class UpgradablePrototype extends Contract {
+  public get baseInstance() {
+    return this.instance
+  }
+
+  public get version(): Promise<string> {
+    return this.instance.getVersion()
+  }
+}
+
+export async function deployDidRegistry() {
+  const didRegex = new Contract('DidRegex')
+  await didRegex.deploy()
+
+  const didValidator = new Contract('DidValidator')
+  await didValidator.deploy({ libraries: [didRegex] })
+
+  const didRegistry = new TestableDidRegistry()
+  await didRegistry.deployProxy({params: [ZERO_ADDRESS], libraries: [didValidator] })
+
+  return didRegistry
+}
+
+export async function deploySchemaRegistry() {
+  const didRegistry = await deployDidRegistry()
+
+  const schemaRegistry = new TestableSchemaRegistry()
+  await schemaRegistry.deployProxy({ params: [didRegistry.address, ZERO_ADDRESS] })
+
+  return { didRegistry, schemaRegistry }
+}
+
+export async function deployCredentialDefinitionRegistry() {
+  const { didRegistry, schemaRegistry } = await deploySchemaRegistry()
+
+  const credentialDefinitionRegistry = new TestableCredentialDefinitionRegistry()
+  await credentialDefinitionRegistry.deployProxy({ params: [didRegistry.address, schemaRegistry.address, ZERO_ADDRESS] })
+
+  return { credentialDefinitionRegistry, didRegistry, schemaRegistry }
+}
+
 export async function getTestAccounts(roleControl: any): Promise<TestAccounts> {
   const [
     deployer,

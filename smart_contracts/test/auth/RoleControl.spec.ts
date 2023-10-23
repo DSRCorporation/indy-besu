@@ -2,9 +2,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import chai from 'chai'
 import { ROLES } from '../../contracts-ts'
 import { Account } from '../../utils'
-import { TestableRoleControl } from '../utils/contract-helpers'
-import { AuthErrors } from '../utils/errors'
-import { getTestAccounts } from '../utils/test-entities'
+import { getTestAccounts, TestAccounts, ZERO_ADDRESS } from '../utils'
 
 const { expect } = chai
 
@@ -13,8 +11,10 @@ describe('RoleControl', () => {
     const roleControl = await new TestableRoleControl().deploy()
     const testAccounts = await getTestAccounts(roleControl)
 
-    return { roleControl, testAccounts }
-  }
+  beforeEach('deploy RoleControl', async () => {
+    roleControl = await new RoleControl().deployProxy({ params: [ZERO_ADDRESS]})
+    testAccounts = await getTestAccounts(roleControl)
+  })
 
   describe('hasRole', () => {
     it('should check role properly for an account deployer', async function () {
