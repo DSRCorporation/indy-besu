@@ -225,49 +225,20 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "ledger_test")]
-    mod validator {
-        use crate::contracts::network::ValidatorAddresses;
-
+    mod role {
         use super::*;
 
-        async fn build_and_submit_get_validators_transaction(
+        async fn build_and_submit_assign_role_transaction(
             client: &LedgerClient,
-        ) -> ValidatorAddresses {
-            let transaction = ValidatorControl::build_get_validators_transaction(&client).unwrap();
-            let result = client.submit_transaction(&transaction).await.unwrap();
-
-            ValidatorControl::parse_get_validators_result(&client, &result).unwrap()
-        }
-
-        async fn build_and_submit_add_validator_transaction(
-            client: &LedgerClient,
-            new_validator_address: &str,
-        ) -> String {
-            let transaction = ValidatorControl::build_add_validator_transaction(
-                &client,
-                ACCOUNT,
-                new_validator_address,
-            )
-            .unwrap();
-            let signed_transaction = client.sign_transaction(&transaction).await.unwrap();
-            let block_hash = client
-                .submit_transaction(&signed_transaction)
-                .await
-                .unwrap();
-
-            client.get_transaction_receipt(&block_hash).await.unwrap()
-        }
-
-        async fn build_and_submit_remove_validator_transaction(
-            client: &LedgerClient,
-            validator_address: &str,
-        ) -> String {
+            assignee_account: &str,
+            role_to_assign: &Role,
+        ) {
             // write
-            let transaction = ValidatorControl::build_remove_validator_transaction(
-                &client,
+            let transaction = RoleControl::build_assign_role_transaction(
+                client,
                 ACCOUNT,
-                validator_address,
+                role_to_assign,
+                assignee_account,
             )
             .unwrap();
             let signed_transaction = client.sign_transaction(&transaction).await.unwrap();
@@ -276,53 +247,84 @@ mod tests {
                 .await
                 .unwrap();
 
-            client.get_transaction_receipt(&block_hash).await.unwrap()
+            // get receipt
+            let receipt = client.get_transaction_receipt(&block_hash).await.unwrap();
+            println!("Receipt: {}", receipt);
+
+            // read
+            let transaction =
+                RoleControl::build_get_role_transaction(client, assignee_account).unwrap();
+            let result = client.submit_transaction(&transaction).await.unwrap();
+            let parsed_role = RoleControl::parse_get_role_result(&client, &result).unwrap();
+            assert_eq!(*role_to_assign, parsed_role);
+        }
+
+        async fn build_and_submit_revoke_role_transaction(
+            client: &LedgerClient,
+            revokee_account: &str,
+            role_to_revoke: &Role,
+        ) {
+            // write
+            let transaction = RoleControl::build_revoke_role_transaction(
+                client,
+                ACCOUNT,
+                role_to_revoke,
+                revokee_account,
+            )
+            .unwrap();
+            let signed_transaction = client.sign_transaction(&transaction).await.unwrap();
+            let block_hash = client
+                .submit_transaction(&signed_transaction)
+                .await
+                .unwrap();
+
+            // get receipt
+            let receipt = client.get_transaction_receipt(&block_hash).await.unwrap();
+            println!("Receipt: {}", receipt);
+
+            // read
+            let transaction =
+                RoleControl::build_has_role_transaction(client, role_to_revoke, revokee_account)
+                    .unwrap();
+            let result = client.submit_transaction(&transaction).await.unwrap();
+            let has_role = RoleControl::parse_has_role_result(&client, &result).unwrap();
+            assert!(!has_role);
         }
 
         #[async_std::test]
-        async fn demo_build_and_submit_transaction_test() -> VdrResult<()> {
+        async fn demo_build_and_submit_assign_and_remove_role_transactions_test() -> VdrResult<()> {
             let client = client();
-            let new_validator_address = "0xb8f2bd414ec806a6a7fe536086e450a0fe6a286f";
+            let assignee_account = "0xed9d02e382b34818e88b88a309c7fe71e65f419d";
+            let role_to_assign = Role::Endorser;
 
-            let receipt =
-                build_and_submit_add_validator_transaction(&client, new_validator_address).await;
-            println!("Receipt: {}", receipt);
+            build_and_submit_assign_role_transaction(&client, assignee_account, &role_to_assign)
+                .await;
 
-            let validator_list = build_and_submit_get_validators_transaction(&client).await;
-            assert_eq!(validator_list.len(), 5);
-            assert!(validator_list.contains(&new_validator_address.to_string()));
-
-            let receipt =
-                build_and_submit_remove_validator_transaction(&client, new_validator_address).await;
-            println!("Receipt: {}", receipt);
-
-            let validator_list = build_and_submit_get_validators_transaction(&client).await;
-            assert_eq!(validator_list.len(), 4);
-            assert!(!validator_list.contains(&new_validator_address.to_string()));
+            build_and_submit_revoke_role_transaction(&client, assignee_account, &role_to_assign)
+                .await;
 
             Ok(())
         }
 
         #[async_std::test]
-        async fn demo_single_step_transaction_execution_test() -> VdrResult<()> {
+        async fn demo_single_step_assign_and_remove_role_execution_test() -> VdrResult<()> {
             let client = client();
-            let new_validator_address = "0xb8f2bd414ec806a6a7fe536086e450a0fe6a286f";
+            let assignee_account = "0xca843569e3427144cead5e4d5999a3d0ccf92b8e";
+            let role_to_assign = Role::Trustee;
 
-            ValidatorControl::add_validator(&client, ACCOUNT, new_validator_address)
+            // write
+            let _receipt =
+                RoleControl::assign_role(&client, ACCOUNT, &role_to_assign, assignee_account)
+                    .await
+                    .unwrap();
+
+            println!("Receipt: {}", _receipt);
+
+            // read
+            let parsed_role = RoleControl::get_role(&client, assignee_account)
                 .await
                 .unwrap();
-
-            let validator_list = ValidatorControl::get_validators(&client).await.unwrap();
-            assert_eq!(validator_list.len(), 5);
-            assert!(validator_list.contains(&new_validator_address.to_string()));
-
-            ValidatorControl::remove_validator(&client, ACCOUNT, new_validator_address)
-                .await
-                .unwrap();
-
-            let validator_list = ValidatorControl::get_validators(&client).await.unwrap();
-            assert_eq!(validator_list.len(), 4);
-            assert!(!validator_list.contains(&new_validator_address.to_string()));
+            assert_eq!(role_to_assign, parsed_role);
 
             Ok(())
         }
