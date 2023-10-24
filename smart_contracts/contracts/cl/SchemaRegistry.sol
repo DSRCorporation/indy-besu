@@ -6,10 +6,9 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 
 import { DidRegistryInterface } from "../did/DidRegistry.sol";
 import { DidDocumentStorage } from "../did/DidTypes.sol";
-import { UpgradeControlInterface } from "../upgrade/UpgradeControlInterface.sol";
-
-import { 
-    DID_NOT_FOUND_ERROR_MESSAGE,
+import { ControlledUpgradeable } from "../upgrade/ControlledUpgradeable.sol";
+import { Errors } from "../utils/Errors.sol";
+import {
     IssuerHasBeenDeactivated,
     IssuerNotFound, 
     SchemaAlreadyExist, 
@@ -23,17 +22,12 @@ import { StrSlice, toSlice } from "@dk1a/solidity-stringutils/src/StrSlice.sol";
 using SchemaValidator for Schema;
 using { toSlice } for string;
 
-contract SchemaRegistry is SchemaRegistryInterface, UUPSUpgradeable, Initializable { 
+contract SchemaRegistry is SchemaRegistryInterface, ControlledUpgradeable {
 
     /**
      * @dev Reference to the contract that manages DIDs
      */
     DidRegistryInterface private _didRegistry;
-
-    /**
-     * @dev Reference to the contract that manages contract upgrades
-     */
-    UpgradeControlInterface private _upgradeControl;
 
     /**
      * Mapping Scheman ID to its Schema Details and Metadata.
@@ -77,12 +71,7 @@ contract SchemaRegistry is SchemaRegistryInterface, UUPSUpgradeable, Initializab
         address upgradeControlAddress
     ) public reinitializer(1) {
         _didRegistry = DidRegistryInterface(didRegistryAddress);
-        _upgradeControl = UpgradeControlInterface(upgradeControlAddress);
-    }
-
-     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address newImplementation) internal view override {
-      _upgradeControl.ensureSufficientApprovals(address(this), newImplementation);
+        _initializeUpgradeControl(upgradeControlAddress);
     }
 
     /// @inheritdoc SchemaRegistryInterface

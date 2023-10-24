@@ -79,6 +79,7 @@ contract UpgradeControl is UpgradeControlInterface, UUPSUpgradeable, Initializab
         _;
     }
 
+    /// @inheritdoc UpgradeControlInterface
     function propose(address proxy, address implementation)
         public override 
         _onlyTrustee() 
