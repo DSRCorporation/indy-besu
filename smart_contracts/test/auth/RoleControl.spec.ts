@@ -8,7 +8,7 @@ const { expect } = chai
 
 describe('RoleControl', () => {
   async function deployRoleControlFixture() {
-    const roleControl = await new TestableRoleControl().deploy()
+    const roleControl = await new TestableRoleControl().deployProxy({ params: [ZERO_ADDRESS] })
     const testAccounts = await getTestAccounts(roleControl)
 
   beforeEach('deploy RoleControl', async () => {
