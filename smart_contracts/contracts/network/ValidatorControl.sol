@@ -46,20 +46,24 @@ contract ValidatorControl is ValidatorSmartContractInterface, ControlledUpgradea
     mapping(address validatorAddress => ValidatorInfo validatorInfo) private validatorInfos;
 
     /**
-     * @dev Modifier that checks that an the sender account has Steward role assigned.
+     * @dev Modifier that checks that the sender account has Steward role assigned
      */
     modifier _senderIsSteward() {
         if (!_roleControl.hasRole(RoleControlInterface.ROLES.STEWARD, msg.sender)) revert Unauthorized(msg.sender);
         _;
     }
 
-    function initialize(
-        address roleControlContractAddress, 
-        address upgradeControlAddress,
-        InitialValidatorInfo[] memory initialValidators
-    ) public reinitializer(1) {
-        require(initialValidators.length > 0, "List of initial validators cannot be empty");
-        require(initialValidators.length < MAX_VALIDATORS, "Number of validators cannot be larger than 256");
+    /**
+     * @dev Modifier that checks that the validator address is not zero
+     */
+    modifier _nonZeroValidatorAddress(address validator) {
+        if (validator == address(0)) revert InvalidValidatorAddress();
+         _;
+    }
+
+    constructor(address roleControlContractAddress, InitialValidatorInfo[] memory initialValidators) {
+        if (initialValidators.length == 0) revert InitialValidatorsRequired();
+        if (initialValidators.length >= MAX_VALIDATORS) revert ExceedsValidatorLimit(MAX_VALIDATORS);
 
         for (uint i = 0; i < initialValidators.length; i++) {
             if (initialValidators[i].account == address(0)) revert InvalidValidatorAccountAddress();
@@ -82,8 +86,18 @@ contract ValidatorControl is ValidatorSmartContractInterface, ControlledUpgradea
         return validators;
     }
 
-    /**
-     * @dev Add a new validator to the list
+   /**
+     * @dev Adds a new validator to the list.
+     * 
+     * Restrictions:
+     * - Only accounts with the steward role are permitted to call this method; otherwise, will revert with an `Unauthorized` error
+     * - The validator address must be non-zero; otherwise, will revert with an `InvalidValidatorAddress` error
+     * - The total number of validators must not exceed 256; otherwise, will revert with an `ExceedsValidatorLimit` error
+     * - The validator must not already exist in the list; otherwise, a `ValidatorAlreadyExists` error will be thrown
+     * - The sender of the transaction must not have an active validator; otherwise, will revert with a `SenderHasActiveValidator` error
+     * 
+     * Events:
+     * - On successful validator creation, will emit a `ValidatorAdded` event
      */
     function addValidator(address newValidator) external _senderIsSteward {
         require(newValidator != address(0), "Cannot add validator with address 0");
@@ -105,6 +119,15 @@ contract ValidatorControl is ValidatorSmartContractInterface, ControlledUpgradea
 
     /**
      * @dev Remove an existing validator from the list
+     * 
+     * Restrcitions:
+     * - Only accounts with the steward role are permitted to call this method; otherwise, will revert with an `Unauthorized` error
+     * - The validator address must be non-zero; otherwise, will revert with an `InvalidValidatorAddress` error
+     * - The validator must not be last one; otherwise, will revert with an `CannotDeactivateLastValidator` error
+     * - The validator must exist; otherwise, will revert with an `ValidatorNotFound` error
+     * 
+     * Events:
+     * - On successful validator removal, will emit a `ValidatorRemoved` event
      */
     function removeValidator(address validator) external _senderIsSteward {
         require(validators.length > 1, "Cannot deactivate last validator");
