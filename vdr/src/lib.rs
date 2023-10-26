@@ -304,7 +304,7 @@ mod tests {
                 &role_to_assign,
             )
             .await;
-            println!("{:?}", receipt);
+            println!("Receipt: {}", receipt);
 
             let assigned_role =
                 build_and_submit_get_role_transaction(&client, assignee_account).await;
@@ -316,7 +316,7 @@ mod tests {
                 &role_to_assign,
             )
             .await;
-            println!("{:?}", receipt);
+            println!("Receipt: {}", receipt);
 
             let has_role =
                 build_and_submit_has_role_transaction(&client, &role_to_assign, assignee_account)
