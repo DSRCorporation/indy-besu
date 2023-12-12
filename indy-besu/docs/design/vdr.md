@@ -21,10 +21,21 @@ In the same, time Indy community follows to idea of splitting complex library in
 ## Client
 
 ```rust
-pub struct LedgerClient {
-  chain_id: u64,
-  client: Box<dyn Client>,
-  contracts: HashMap<String, Box<dyn Contract>>,
+/// Create Indy2.0 client interacting with ledger
+///
+/// #Params
+///  param: chain_id: u64 - chain id of network (chain ID is part of the transaction signing process to protect against transaction replay attack)
+///  param: node_address: string - RPC node endpoint
+///  param: contract_specs: Vec<ContractSpec> - specifications for contracts  deployed on the network
+///
+/// #Returns
+///  client - client to use for building and sending transactions
+fn indy_vdr_create_client(
+    chain_id: u64,
+    node_address: String,
+    contract_configs: Vec<ContractConfig>,
+) -> LedgerClient {
+    unimpltemented!()
 }
 
 struct ContractConfig {
@@ -32,14 +43,33 @@ struct ContractConfig {
   spec_path: String, // path to JSON file containing compiled contract's ABI specification
 }
 
-struct StatusResult {
-  status: Status
-}
+trait Client {
+  /// Sign transaction.
+  ///
+  /// # Params
+  /// - `transaction` prepared transaction to sign
+  ///
+  /// # Returns
+  /// signed transaction object
+  async fn sign_transaction(&self, transaction: &Transaction) -> VdrResult<Transaction>;
 
-enum Status {
-  Ok,
-  Err(String)
-}
+  /// Submit signed write transaction to the ledger
+  ///
+  /// # Params
+  /// - `transaction` prepared and signed transaction to submit
+  ///
+  /// # Returns
+  /// hash of a block in which transaction included
+  async fn submit_transaction(&self, transaction: &Transaction) -> VdrResult<Vec<u8>>;
+
+  /// Submit read transaction to the ledger
+  ///
+  /// # Params
+  /// - `transaction` prepared transaction to submit
+  ///
+  /// # Returns
+  /// result data of transaction execution
+  async fn call_transaction(&self, transaction: &Transaction) -> VdrResult<Vec<u8>>;
 
 impl LedgerClient {
   /// Create Indy2.0 client interacting with ledger

@@ -41,8 +41,8 @@ pub struct Transaction {
     pub chain_id: u64,
     /// transaction payload
     pub data: Vec<u8>,
-    /// transaction signature
-    pub signature: Option<TransactionSignature>,
+    /// signed raw transaction
+    pub signed: Option<TransactionSignature>,
 }
 
 impl Transaction {
@@ -80,7 +80,7 @@ impl Transaction {
             H256::from_slice(&signature_data.signature[32..]),
         );
 
-        self.signature = signature
+        self.signed = signature
     }
 }
 
@@ -175,7 +175,7 @@ impl TransactionBuilder {
             chain_id: client.chain_id(),
             data,
             nonce,
-            signature: None,
+            signed: None,
         };
 
         trace!("Built transaction: {:?}", transaction);
