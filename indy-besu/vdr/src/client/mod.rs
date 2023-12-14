@@ -3,6 +3,7 @@ mod constants;
 mod implementation;
 mod quorum;
 
+use async_trait::async_trait;
 use crate::{
     error::VdrResult,
     types::{Address, ContractOutput, ContractParam, PingStatus, Transaction},
@@ -12,14 +13,8 @@ pub use client::*;
 pub use constants::*;
 pub use quorum::*;
 
-use web3::types::{Transaction as Web3Transaction, H256};
-
-#[cfg(test)]
-use mockall::automock;
-
-#[cfg_attr(test, automock)]
-#[async_trait::async_trait]
-pub trait Client: Send + Sync {
+#[async_trait]
+pub trait Client: Sync + Send {
     /// Retrieve count of transaction for the given account
     ///
     /// # Params
@@ -32,7 +27,7 @@ pub trait Client: Send + Sync {
     /// Submit transaction to the ledger
     ///
     /// # Params
-    /// - `transaction` prepared transaction to submit
+    /// - `transaction` transaction to submit
     ///
     /// # Returns
     /// hash of a block in which transaction included
@@ -72,7 +67,7 @@ pub trait Client: Send + Sync {
     async fn get_transaction(&self, hash: H256) -> VdrResult<Option<Web3Transaction>>;
 }
 
-pub trait Contract {
+pub trait Contract: Sync + Send {
     /// Get the address of deployed contract
     ///
     /// # Returns
