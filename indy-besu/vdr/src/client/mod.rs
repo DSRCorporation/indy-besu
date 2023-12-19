@@ -3,17 +3,18 @@ mod constants;
 mod implementation;
 mod quorum;
 
-use async_trait::async_trait;
 use crate::{
     error::VdrResult,
     types::{Address, ContractOutput, ContractParam, PingStatus, Transaction},
 };
+use async_trait::async_trait;
 
 pub use client::*;
 pub use constants::*;
 pub use quorum::*;
 
-#[async_trait]
+#[cfg_attr(not(feature = "wasm"), async_trait)]
+#[cfg_attr(feature = "wasm", async_trait(?Send))]
 pub trait Client: Sync + Send {
     /// Retrieve count of transaction for the given account
     ///

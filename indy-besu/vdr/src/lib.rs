@@ -13,10 +13,9 @@ pub mod migration;
 
 pub use client::{Client, Contract, LedgerClient};
 pub use contracts::{
-    auth::{Role, role_control},
+    auth::{role_control, Role},
     cl::{
-        credential_definition_registry,
-        schema_registry,
+        credential_definition_registry, schema_registry,
         types::{
             credential_definition::CredentialDefinition,
             credential_definition_id::CredentialDefinitionId, schema::Schema, schema_id::SchemaId,
@@ -41,6 +40,7 @@ pub use signer::{BasicSigner, KeyPair};
 
 pub type JsonValue = serde_json::Value;
 
+#[cfg(feature = "uni_ffi")]
 impl UniffiCustomTypeConverter for JsonValue {
     type Builtin = String;
 
@@ -53,7 +53,9 @@ impl UniffiCustomTypeConverter for JsonValue {
     }
 }
 
+#[cfg(feature = "uni_ffi")]
 uniffi::custom_type!(JsonValue, String);
+#[cfg(feature = "uni_ffi")]
 uniffi::include_scaffolding!("indy2_vdr");
 
 #[cfg(feature = "ledger_test")]
@@ -90,8 +92,8 @@ mod tests {
     }
 
     mod did {
-        use crate::did_registry;
         use super::*;
+        use crate::did_registry;
 
         pub(crate) async fn build_and_submit_create_did_doc_transaction(
             client: &LedgerClient,
@@ -121,8 +123,7 @@ mod tests {
                 .await
                 .unwrap();
             let result = client.submit_transaction(&transaction).await.unwrap();
-            let resolved_did_doc =
-                did_registry::parse_resolve_did_result(&client, result).unwrap();
+            let resolved_did_doc = did_registry::parse_resolve_did_result(&client, result).unwrap();
             assert_eq!(did_doc, resolved_did_doc);
 
             Ok(())
@@ -130,8 +131,8 @@ mod tests {
     }
 
     mod schema {
-        use crate::schema_registry;
         use super::*;
+        use crate::schema_registry;
 
         pub(crate) async fn build_and_submit_create_schema_transaction(
             client: &LedgerClient,
@@ -160,9 +161,10 @@ mod tests {
             println!("Receipt: {}", receipt);
 
             // read
-            let transaction = schema_registry::build_resolve_schema_transaction(&client, &schema.id)
-                .await
-                .unwrap();
+            let transaction =
+                schema_registry::build_resolve_schema_transaction(&client, &schema.id)
+                    .await
+                    .unwrap();
             let result = client.submit_transaction(&transaction).await.unwrap();
             let resolved_schema =
                 schema_registry::parse_resolve_schema_result(&client, result).unwrap();
@@ -173,8 +175,8 @@ mod tests {
     }
 
     mod credential_definition {
-        use crate::credential_definition_registry;
         use super::*;
+        use crate::credential_definition_registry;
 
         pub(crate) async fn build_and_submit_create_cred_def_transaction(
             client: &LedgerClient,
@@ -187,8 +189,8 @@ mod tests {
                     &TRUSTEE_ACC,
                     cred_def,
                 )
-                    .await
-                    .unwrap();
+                .await
+                .unwrap();
             sign_and_submit_transaction(client, transaction, signer).await
         }
 
@@ -208,7 +210,7 @@ mod tests {
                 &credential_definition,
                 &signer,
             )
-                .await;
+            .await;
             println!("Receipt: {}", receipt);
 
             // read
@@ -217,14 +219,14 @@ mod tests {
                     &client,
                     &credential_definition.id,
                 )
-                    .await
-                    .unwrap();
+                .await
+                .unwrap();
             let result = client.submit_transaction(&transaction).await.unwrap();
             let resolved_credential_definition =
                 credential_definition_registry::parse_resolve_credential_definition_result(
                     &client, result,
                 )
-                    .unwrap();
+                .unwrap();
             assert_eq!(credential_definition, resolved_credential_definition);
 
             Ok(())
@@ -232,8 +234,8 @@ mod tests {
     }
 
     mod role {
-        use crate::role_control;
         use super::*;
+        use crate::role_control;
 
         pub(crate) async fn build_and_submit_assign_role_transaction(
             client: &LedgerClient,
@@ -247,8 +249,8 @@ mod tests {
                 role_to_assign,
                 assignee_account,
             )
-                .await
-                .unwrap();
+            .await
+            .unwrap();
             sign_and_submit_transaction(client, transaction, signer).await
         }
 
@@ -264,8 +266,8 @@ mod tests {
                 role_to_revoke,
                 revokee_account,
             )
-                .await
-                .unwrap();
+            .await
+            .unwrap();
 
             let sign_bytes = transaction.get_signing_bytes().unwrap();
             let signature = signer.sign(&sign_bytes, &TRUSTEE_ACC.value()).unwrap();
@@ -313,7 +315,7 @@ mod tests {
                 &role_to_assign,
                 &signer,
             )
-                .await;
+            .await;
             println!("Receipt: {}", receipt);
 
             let assigned_role =
@@ -326,7 +328,7 @@ mod tests {
                 &role_to_assign,
                 &signer,
             )
-                .await;
+            .await;
             println!("Receipt: {}", receipt);
 
             let has_role =
@@ -339,7 +341,10 @@ mod tests {
     }
 
     mod validator {
-        use crate::{contracts::network::ValidatorAddresses, signer::basic_signer::test::basic_signer, validator_control};
+        use crate::{
+            contracts::network::ValidatorAddresses, signer::basic_signer::test::basic_signer,
+            validator_control,
+        };
 
         use super::*;
 
@@ -364,8 +369,8 @@ mod tests {
                 &TRUSTEE_ACC,
                 new_validator_address,
             )
-                .await
-                .unwrap();
+            .await
+            .unwrap();
             sign_and_submit_transaction(client, transaction, signer).await
         }
 
@@ -380,8 +385,8 @@ mod tests {
                 &TRUSTEE_ACC,
                 validator_address,
             )
-                .await
-                .unwrap();
+            .await
+            .unwrap();
             sign_and_submit_transaction(client, transaction, signer).await
         }
 
@@ -396,14 +401,14 @@ mod tests {
                 &Role::Steward,
                 &signer,
             )
-                .await;
+            .await;
 
             let receipt = build_and_submit_add_validator_transaction(
                 &client,
                 &new_validator_address,
                 &signer,
             )
-                .await;
+            .await;
             println!("Receipt: {}", receipt);
 
             let validator_list = build_and_submit_get_validators_transaction(&client).await;
@@ -415,7 +420,7 @@ mod tests {
                 &new_validator_address,
                 &signer,
             )
-                .await;
+            .await;
             println!("Receipt: {}", receipt);
 
             let validator_list = build_and_submit_get_validators_transaction(&client).await;
