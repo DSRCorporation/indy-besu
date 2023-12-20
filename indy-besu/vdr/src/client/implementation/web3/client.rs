@@ -56,7 +56,6 @@ impl Web3Client {
     }
 }
 
-#[async_trait(?Send)]
 impl Client for Web3Client {
     async fn get_transaction_count(&self, address: &crate::Address) -> VdrResult<[u64; 4]> {
         let account_address = Address::from_str(address.value()).map_err(|_| {
