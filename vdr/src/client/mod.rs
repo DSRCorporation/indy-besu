@@ -14,6 +14,10 @@ pub use client::LedgerClient;
 pub use constants::*;
 pub use quorum::{QuorumConfig, QuorumHandler};
 
+#[cfg(test)]
+use mockall::automock;
+
+#[cfg_attr(test, automock)]
 #[cfg_attr(not(feature = "wasm"), async_trait)]
 #[cfg_attr(feature = "wasm", async_trait(?Send))]
 pub trait Client: Sync + Send {
@@ -30,6 +34,7 @@ pub trait Client: Sync + Send {
     ///
     /// # Params
     /// - `transaction` transaction to submit
+    /// - `transaction` prepared transaction to submit
     ///
     /// # Returns
     /// hash of a block in which transaction included

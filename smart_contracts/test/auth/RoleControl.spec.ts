@@ -2,7 +2,9 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import chai from 'chai'
 import { ROLES } from '../../contracts-ts'
 import { Account } from '../../utils'
-import { getTestAccounts, TestAccounts, ZERO_ADDRESS } from '../utils'
+import { TestableRoleControl } from '../utils/contract-helpers'
+import { AuthErrors } from '../utils/errors'
+import { getTestAccounts, ZERO_ADDRESS } from '../utils/test-entities'
 
 const { expect } = chai
 
