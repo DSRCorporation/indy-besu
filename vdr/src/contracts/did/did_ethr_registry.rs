@@ -918,7 +918,7 @@ pub mod test {
     pub fn public_key_2() -> DidDocAttribute {
         DidDocAttribute::PublicKey(PublicKeyAttribute {
             purpose: PublicKeyPurpose::Enc,
-            type_: PublicKeyType::Ed25519VerificationKey2020,
+            type_: PublicKeyType::Ed25519VerificationKey2018,
             public_key_base58: Some("H3C2AVvLMv6gmMNam3uVAjZpfkcJCwDwnZn6z3wXmqPV".to_string()),
             ..PublicKeyAttribute::default()
         })
@@ -927,7 +927,7 @@ pub mod test {
     pub fn public_key_3() -> DidDocAttribute {
         DidDocAttribute::PublicKey(PublicKeyAttribute {
             purpose: PublicKeyPurpose::VeriKey,
-            type_: PublicKeyType::EcdsaSecp256k1VerificationKey2020,
+            type_: PublicKeyType::EcdsaSecp256k1RecoveryMethod2020,
             public_key_hex: Some(
                 "02b97c30de767f084ce3080168ee293053ba33b235d7116a3263d29f1450936b71".to_string(),
             ),

@@ -165,24 +165,24 @@ impl TryFrom<&[u8]> for DelegateType {
 #[derive(Debug, Default, Clone, PartialEq, Deserialize, Serialize)]
 pub enum PublicKeyType {
     #[default]
-    Ed25519VerificationKey2020,
+    Ed25519VerificationKey2018,
     X25519KeyAgreementKey2020,
-    EcdsaSecp256k1VerificationKey2020,
+    EcdsaSecp256k1RecoveryMethod2020,
 }
 
 impl PublicKeyType {
     pub fn to_name(&self) -> &str {
         match self {
-            PublicKeyType::EcdsaSecp256k1VerificationKey2020 => "Secp256k1",
-            PublicKeyType::Ed25519VerificationKey2020 => "Ed25519",
+            PublicKeyType::EcdsaSecp256k1RecoveryMethod2020 => "Secp256k1",
+            PublicKeyType::Ed25519VerificationKey2018 => "Ed25519",
             PublicKeyType::X25519KeyAgreementKey2020 => "X25519",
         }
     }
 
     pub fn from_name(name: &str) -> VdrResult<Self> {
         match name {
-            "Secp256k1" => Ok(PublicKeyType::EcdsaSecp256k1VerificationKey2020),
-            "Ed25519" => Ok(PublicKeyType::Ed25519VerificationKey2020),
+            "Secp256k1" => Ok(PublicKeyType::EcdsaSecp256k1RecoveryMethod2020),
+            "Ed25519" => Ok(PublicKeyType::Ed25519VerificationKey2018),
             "X25519" => Ok(PublicKeyType::X25519KeyAgreementKey2020),
             value => Err(VdrError::CommonInvalidData(format!(
                 "Unexpected public key type {}",
@@ -195,11 +195,11 @@ impl PublicKeyType {
 impl From<PublicKeyType> for VerificationKeyType {
     fn from(value: PublicKeyType) -> Self {
         match value {
-            PublicKeyType::EcdsaSecp256k1VerificationKey2020 => {
-                VerificationKeyType::EcdsaSecp256k1VerificationKey2020
+            PublicKeyType::EcdsaSecp256k1RecoveryMethod2020 => {
+                VerificationKeyType::EcdsaSecp256k1RecoveryMethod2020
             }
-            PublicKeyType::Ed25519VerificationKey2020 => {
-                VerificationKeyType::Ed25519VerificationKey2020
+            PublicKeyType::Ed25519VerificationKey2018 => {
+                VerificationKeyType::Ed25519VerificationKey2018
             }
             PublicKeyType::X25519KeyAgreementKey2020 => {
                 VerificationKeyType::X25519KeyAgreementKey2020
