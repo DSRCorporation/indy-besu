@@ -4,7 +4,7 @@ use crate::{
     client::LedgerClient,
     contracts::cl::types::{
         schema::{Schema, SchemaRecord},
-        schema_id::SchemaId,
+        schema_id::{ParsedSchemaId, SchemaId},
     },
     error::VdrResult,
     types::{
@@ -37,13 +37,12 @@ pub async fn build_create_schema_transaction(
 ) -> VdrResult<Transaction> {
     schema.validate()?;
     let identity = Address::try_from(&schema.issuer_id)?;
-    let id = schema.id();
     TransactionBuilder::new()
         .set_contract(CONTRACT_NAME)
         .set_method(METHOD_CREATE_SCHEMA)
         .add_param(&identity)?
-        .add_param(&id)?
-        .add_param(&schema.issuer_id)?
+        .add_param(&schema.id().without_network()?)?
+        .add_param(&schema.issuer_id.without_network()?)?
         .add_param(schema)?
         .set_type(TransactionType::Write)
         .set_from(from)
@@ -67,14 +66,13 @@ pub async fn build_create_schema_endorsing_data(
 ) -> VdrResult<TransactionEndorsingData> {
     schema.validate()?;
     let identity = Address::try_from(&schema.issuer_id)?;
-    let id = schema.id();
     TransactionEndorsingDataBuilder::new()
         .set_contract(CONTRACT_NAME)
         .set_identity(&identity)
         .add_param(&identity)?
         .add_param(&MethodStringParam::from(METHOD_CREATE_SCHEMA))?
-        .add_param(&id)?
-        .add_param(&schema.issuer_id)?
+        .add_param(&schema.id().without_network()?)?
+        .add_param(&schema.issuer_id.without_network()?)?
         .add_param(schema)?
         .build(client)
         .await
@@ -101,7 +99,6 @@ pub async fn build_create_schema_signed_transaction(
 ) -> VdrResult<Transaction> {
     schema.validate()?;
     let identity = Address::try_from(&schema.issuer_id)?;
-    let id = schema.id();
     TransactionBuilder::new()
         .set_contract(CONTRACT_NAME)
         .set_method(METHOD_CREATE_SCHEMA_SIGNED)
@@ -109,8 +106,8 @@ pub async fn build_create_schema_signed_transaction(
         .add_param(&signature.v())?
         .add_param(&signature.r())?
         .add_param(&signature.s())?
-        .add_param(&id)?
-        .add_param(&schema.issuer_id)?
+        .add_param(&schema.id().without_network()?)?
+        .add_param(&schema.issuer_id.without_network()?)?
         .add_param(schema)?
         .set_type(TransactionType::Write)
         .set_from(sender)
@@ -135,7 +132,7 @@ pub async fn build_resolve_schema_transaction(
     TransactionBuilder::new()
         .set_contract(CONTRACT_NAME)
         .set_method(METHOD_RESOLVE_SCHEMA)
-        .add_param(id)?
+        .add_param(&id.without_network()?)?
         .set_type(TransactionType::Read)
         .build(client)
         .await
@@ -169,6 +166,17 @@ pub fn parse_resolve_schema_result(client: &LedgerClient, bytes: &[u8]) -> VdrRe
 #[logfn(Info)]
 #[logfn_inputs(Debug)]
 pub async fn resolve_schema(client: &LedgerClient, id: &SchemaId) -> VdrResult<Schema> {
+    let parsed_id = ParsedSchemaId::try_from(id)?;
+    match (parsed_id.network.as_ref(), client.network()) {
+        (Some(schema_network), Some(client_network)) if schema_network != client_network => {
+            return Err(VdrError::InvalidSchema(format!(
+                "Network of request schema id {} does not match to the client network {}",
+                schema_network, client_network
+            )));
+        }
+        _ => {}
+    };
+
     let transaction = build_resolve_schema_transaction(client, id).await?;
     let response = client.submit_transaction(&transaction).await?;
     if response.is_empty() {
@@ -254,9 +262,9 @@ pub mod test {
         }
 
         #[rstest]
-        #[case::name_not_provided("", SCHEMA_VERSION, &SCHEMA_ATTRIBUTES)]
-        #[case::version_not_provided(SCHEMA_NAME, "", &SCHEMA_ATTRIBUTES)]
-        #[case::attributes_not_provided(SCHEMA_NAME, SCHEMA_VERSION, &HashSet::new())]
+        #[case::name_not_provided("", SCHEMA_VERSION, & SCHEMA_ATTRIBUTES)]
+        #[case::version_not_provided(SCHEMA_NAME, "", & SCHEMA_ATTRIBUTES)]
+        #[case::attributes_not_provided(SCHEMA_NAME, SCHEMA_VERSION, & HashSet::new())]
         async fn build_create_schema_transaction_errors(
             #[case] name: &str,
             #[case] version: &str,

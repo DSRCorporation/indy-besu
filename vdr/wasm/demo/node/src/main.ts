@@ -5,6 +5,7 @@ import { LedgerClient, EthrDidRegistry, DidResolver, SchemaRegistry } from "indy
 
 const chainId = 1337
 const nodeAddress = 'http://127.0.0.1:8545'
+const network = 'test'
 // set path to the compiled contract
 const didEthrRegistryConfig = {
     address: '0x0000000000000000000000000000000000018888',
@@ -45,7 +46,7 @@ async function demo() {
             "spec": JSON.parse(fs.readFileSync(schemaRegistryConfig.specPath, 'utf8')),
         }
     ]
-    const client = new LedgerClient(chainId, nodeAddress, contractConfigs, null)
+    const client = new LedgerClient(chainId, nodeAddress, contractConfigs, network, null)
     const status = await client.ping()
     console.log('Status: ' + JSON.stringify(status, null, 2))
 

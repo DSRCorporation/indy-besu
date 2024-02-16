@@ -10,6 +10,7 @@ from indy_besu_vdr import *
 chain_id = 1337
 # address of an RPC node connected to the network
 node_address = 'http://127.0.0.1:8545'
+network = 'test'
 # address of deployed IndyDidRegistry smart contract
 did_contact_address = '0x0000000000000000000000000000000000018888'
 schema_contact_address = '0x0000000000000000000000000000000000005555'
@@ -40,7 +41,7 @@ async def demo():
         ContractConfig(did_contact_address, did_contact_spec_path, None),
         ContractConfig(schema_contact_address, schema_contact_spec_path, None),
     ]
-    client = LedgerClient(chain_id, node_address, contract_configs, None)
+    client = LedgerClient(chain_id, node_address, contract_configs, network, None)
     status = await client.ping()
     print(' Status: ' + str(status))
 

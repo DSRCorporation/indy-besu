@@ -4,7 +4,7 @@ use crate::{
     client::LedgerClient,
     contracts::cl::types::{
         credential_definition::{CredentialDefinition, CredentialDefinitionRecord},
-        credential_definition_id::CredentialDefinitionId,
+        credential_definition_id::{CredentialDefinitionId, ParsedCredentialDefinitionId},
     },
     error::VdrResult,
     types::{
@@ -38,14 +38,13 @@ pub async fn build_create_credential_definition_transaction(
 ) -> VdrResult<Transaction> {
     credential_definition.validate()?;
     let identity = Address::try_from(&credential_definition.issuer_id)?;
-    let id = credential_definition.id();
     TransactionBuilder::new()
         .set_contract(CONTRACT_NAME)
         .set_method(METHOD_CREATE_CREDENTIAL_DEFINITION)
         .add_param(&identity)?
-        .add_param(&id)?
-        .add_param(&credential_definition.issuer_id)?
-        .add_param(&credential_definition.schema_id)?
+        .add_param(&credential_definition.id().without_network()?)?
+        .add_param(&credential_definition.issuer_id.without_network()?)?
+        .add_param(&credential_definition.schema_id.without_network()?)?
         .add_param(credential_definition)?
         .set_type(TransactionType::Write)
         .set_from(from)
@@ -69,7 +68,6 @@ pub async fn build_create_credential_definition_endorsing_data(
 ) -> VdrResult<TransactionEndorsingData> {
     credential_definition.validate()?;
     let identity = Address::try_from(&credential_definition.issuer_id)?;
-    let id = credential_definition.id();
     TransactionEndorsingDataBuilder::new()
         .set_contract(CONTRACT_NAME)
         .set_identity(&identity)
@@ -77,9 +75,9 @@ pub async fn build_create_credential_definition_endorsing_data(
         .add_param(&MethodStringParam::from(
             METHOD_CREATE_CREDENTIAL_DEFINITION,
         ))?
-        .add_param(&id)?
-        .add_param(&credential_definition.issuer_id)?
-        .add_param(&credential_definition.schema_id)?
+        .add_param(&credential_definition.id().without_network()?)?
+        .add_param(&credential_definition.issuer_id.without_network()?)?
+        .add_param(&credential_definition.schema_id.without_network()?)?
         .add_param(credential_definition)?
         .build(client)
         .await
@@ -106,7 +104,6 @@ pub async fn build_create_credential_definition_signed_transaction(
 ) -> VdrResult<Transaction> {
     credential_definition.validate()?;
     let identity = Address::try_from(&credential_definition.issuer_id)?;
-    let id = credential_definition.id();
     TransactionBuilder::new()
         .set_contract(CONTRACT_NAME)
         .set_method(METHOD_CREATE_CREDENTIAL_DEFINITION_SIGNED)
@@ -114,9 +111,9 @@ pub async fn build_create_credential_definition_signed_transaction(
         .add_param(&signature.v())?
         .add_param(&signature.r())?
         .add_param(&signature.s())?
-        .add_param(&id)?
-        .add_param(&credential_definition.issuer_id)?
-        .add_param(&credential_definition.schema_id)?
+        .add_param(&credential_definition.id().without_network()?)?
+        .add_param(&credential_definition.issuer_id.without_network()?)?
+        .add_param(&credential_definition.schema_id.without_network()?)?
         .add_param(credential_definition)?
         .set_type(TransactionType::Write)
         .set_from(from)
@@ -142,7 +139,7 @@ pub async fn build_resolve_credential_definition_transaction(
     TransactionBuilder::new()
         .set_contract(CONTRACT_NAME)
         .set_method(METHOD_RESOLVE_CREDENTIAL_DEFINITION)
-        .add_param(id)?
+        .add_param(&id.without_network()?)?
         .set_type(TransactionType::Read)
         .build(client)
         .await
@@ -182,6 +179,14 @@ pub async fn resolve_credential_definition(
     client: &LedgerClient,
     id: &CredentialDefinitionId,
 ) -> VdrResult<CredentialDefinition> {
+    let parsed_id = ParsedCredentialDefinitionId::try_from(id)?;
+    match (parsed_id.network.as_ref(), client.network()) {
+        (Some(schema_network), Some(client_network)) if schema_network != client_network => {
+            return Err(VdrError::InvalidCredentialDefinition(format!("Network of request credential definition id {} does not match to the client network {}", schema_network, client_network)));
+        }
+        _ => {}
+    };
+
     let transaction = build_resolve_credential_definition_transaction(client, id).await?;
     let response = client.submit_transaction(&transaction).await?;
 
